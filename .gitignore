@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# Data storage (keep directory structure with .gitkeep)
+backend/data/*
+!backend/data/uploads/
+!backend/data/uploads/.gitkeep
+!backend/data/chroma/
+!backend/data/chroma/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+hello.txt
