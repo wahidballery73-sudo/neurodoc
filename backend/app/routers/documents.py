@@ -5,7 +5,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from app.config import settings
 from app.core.ingest import extract_and_chunk_pdf
 from app.core.embeddings import embed_texts, embed_query
-from app.core.vectorstore import add_chunks, query_chunks
+from app.core.vectorstore import add_chunks, query_chunks, get_collection
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -53,6 +53,40 @@ async def upload_document(file: UploadFile = File(...)):
         "total_chunks": len(chunks),
         "message": "Document ingested and embedded successfully."
     }
+@router.get("")
+async def list_documents():
+    """
+    Lists all ingested documents with metadata aggregated by doc_id.
+    """
+    try:
+        collection = get_collection()
+        results = collection.get(include=["metadatas"])
+        metadatas = results.get("metadatas", [])
+        
+        if not metadatas:
+            return []
+        
+        docs_map = {}
+        for meta in metadatas:
+            doc_id = meta["doc_id"]
+            if doc_id not in docs_map:
+                docs_map[doc_id] = {
+                    "doc_id": doc_id,
+                    "filename": meta["filename"],
+                    "chunk_count": 0,
+                    "page_count": 0
+                }
+            
+            docs_map[doc_id]["chunk_count"] += 1
+            docs_map[doc_id]["page_count"] = max(docs_map[doc_id]["page_count"], meta["page"])
+            
+        doc_list = list(docs_map.values())
+        doc_list.sort(key=lambda x: x["doc_id"], reverse=True)
+        return doc_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
+
+
 
 @router.get("/search")
 async def search_documents(
