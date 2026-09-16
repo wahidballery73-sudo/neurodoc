@@ -1,37 +1,45 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
+@theme {
+  --color-bg: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-border: #E5E5E5;
+  --color-text: #0A0A0A;
+  --color-muted: #737373;
+  --color-accent: #3B82F6;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+@variant dark {
+  @slot;
+
   :root {
-    --bg: 250 250 250;
-    --surface: 255 255 255;
-    --border: 229 229 229;
-    --text: 10 10 10;
-    --muted: 115 115 115;
-    --accent: 59 130 246;
-  }
-
-  .dark {
-    --bg: 10 10 10;
-    --surface: 20 20 20;
-    --border: 38 38 38;
-    --text: 250 250 250;
-    --muted: 163 163 163;
-    --accent: 96 165 250;
+    --color-bg: #0A0A0A;
+    --color-surface: #141414;
+    --color-border: #262626;
+    --color-text: #FAFAFA;
+    --color-muted: #A3A3A3;
+    --color-accent: #60A5FA;
   }
 }
 
 @layer base {
-  * {
-    border-color: rgb(var(--border));
-  }
-  html, body {
-    background: rgb(var(--bg));
-    color: rgb(var(--text));
-  }
+  html,
   body {
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  body {
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  * {
+    border-color: var(--color-border);
   }
 }

@@ -44,7 +44,6 @@ function CitationChip({ page, onClick }: { page: number; onClick: () => void }) 
 
 function preprocessCitations(text: string): string {
   if (!text) return "";
-  // Replaces [p.1], [p. 1], (p.1), (p. 1) with markdown links [p.1](#citation-1)
   return text
     .replace(/\[p\.\s*(\d+)\]/gi, "[p.$1](#citation-$1)")
     .replace(/\(p\.\s*(\d+)\)/gi, "[p.$1](#citation-$1)");
@@ -62,24 +61,15 @@ function ChatPageInner() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log("[ChatPage] docId from searchParams:", docId);
-  }, [docId]);
-
-  useEffect(() => {
-    console.log("[ChatPage] currentPage updated to:", currentPage);
-  }, [currentPage]);
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   async function send(question: string) {
     if (!question.trim() || loading) return;
-    
+
     setInput("");
     setLoading(true);
 
-    // Push user message and placeholder assistant message
     setMessages((prev) => [
       ...prev,
       { role: "user", content: question },
@@ -133,7 +123,6 @@ function ChatPageInner() {
     }
   }
 
-
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
@@ -142,7 +131,6 @@ function ChatPageInner() {
   }
 
   function jumpToPage(page: number) {
-    console.log("[ChatPage] jumpToPage requested page:", page);
     setCurrentPage(page);
   }
 
