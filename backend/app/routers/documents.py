@@ -2,6 +2,7 @@ import uuid
 import shutil
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi.responses import FileResponse
 from app.config import settings
 from app.core.ingest import extract_and_chunk_pdf
 from app.core.embeddings import embed_texts, embed_query
@@ -53,6 +54,8 @@ async def upload_document(file: UploadFile = File(...)):
         "total_chunks": len(chunks),
         "message": "Document ingested and embedded successfully."
     }
+
+
 @router.get("")
 async def list_documents():
     """
@@ -87,7 +90,6 @@ async def list_documents():
         raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
 
 
-
 @router.get("/search")
 async def search_documents(
     query: str = Query(..., description="Search query string"),
@@ -108,3 +110,22 @@ async def search_documents(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@router.get("/{doc_id}/file")
+async def get_document_file(doc_id: str):
+    """
+    Serves the raw PDF for a given doc_id. Served inline so the browser renders it.
+    """
+    matches = list(settings.upload_dir.glob(f"{doc_id}_*"))
+    if not matches:
+        raise HTTPException(status_code=404, detail="Document not found")
+    pdf_path = matches[0]
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": "inline",
+            "Cache-Control": "no-store",
+        },
+    )
