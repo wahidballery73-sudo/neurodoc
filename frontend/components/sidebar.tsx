@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Library, MessageSquare, LogOut } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
 
   const links = [
@@ -18,7 +19,7 @@ export default function Sidebar() {
   const initial = email.charAt(0).toUpperCase() || "?";
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-border bg-surface">
+    <aside className="hidden md:flex h-screen w-60 shrink-0 flex-col border-r border-border bg-surface">
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-border px-5">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-text">
@@ -85,7 +86,10 @@ export default function Sidebar() {
               </p>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={async () => {
+                await signOut({ redirect: false });
+                router.push("/login");
+              }}
               title="Sign out"
               aria-label="Sign out"
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-bg hover:text-text"

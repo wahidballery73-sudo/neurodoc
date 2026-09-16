@@ -1,4 +1,9 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+function apiBase(): string {
+  if (typeof window !== "undefined") {
+    return `http://${window.location.hostname}:8000`;
+  }
+  return "http://127.0.0.1:8000";
+}
 
 export type Document = {
   doc_id: string;
@@ -20,7 +25,7 @@ export type ChatResponse = {
 };
 
 export async function listDocuments(): Promise<Document[]> {
-  const res = await fetch(`${API_URL}/documents`, { cache: "no-store" });
+  const res = await fetch(`${apiBase()}/documents`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to list documents (${res.status})`);
   return res.json();
 }
@@ -28,7 +33,7 @@ export async function listDocuments(): Promise<Document[]> {
 export async function uploadDocument(file: File): Promise<Document> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_URL}/documents/upload`, {
+  const res = await fetch(`${apiBase()}/documents/upload`, {
     method: "POST",
     body: form,
   });
@@ -43,7 +48,7 @@ export async function chat(
   question: string,
   docId?: string
 ): Promise<ChatResponse> {
-  const res = await fetch(`${API_URL}/chat`, {
+  const res = await fetch(`${apiBase()}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question, doc_id: docId || null }),
@@ -63,7 +68,7 @@ export async function chatStream(
   onDone: () => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${API_URL}/chat/stream`, {
+  const res = await fetch(`${apiBase()}/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question, doc_id: docId || null }),
@@ -93,4 +98,4 @@ export async function chatStream(
       else if (event === "done") onDone();
     }
   }
-}
+}

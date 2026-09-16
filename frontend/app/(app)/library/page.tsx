@@ -68,7 +68,7 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Library</h1>
         <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
