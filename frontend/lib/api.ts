@@ -54,3 +54,43 @@ export async function chat(
   }
   return res.json();
 }
+
+export async function chatStream(
+  question: string,
+  docId: string | undefined,
+  onSources: (sources: ChatSource[]) => void,
+  onToken: (t: string) => void,
+  onDone: () => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/chat/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, doc_id: docId || null }),
+    signal,
+  });
+  if (!res.ok || !res.body) throw new Error(`Stream failed (${res.status})`);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    // Split on double newline — events are separated by \n\n
+    const parts = buf.split("\n\n");
+    buf = parts.pop() || "";
+    for (const part of parts) {
+      const lines = part.split("\n");
+      let event = "", data = "";
+      for (const line of lines) {
+        if (line.startsWith("event: ")) event = line.slice(7).trim();
+        else if (line.startsWith("data: ")) data = line.slice(6);
+      }
+      if (!event || !data) continue;
+      if (event === "sources") onSources(JSON.parse(data));
+      else if (event === "token") onToken(JSON.parse(data).t);
+      else if (event === "done") onDone();
+    }
+  }
+}

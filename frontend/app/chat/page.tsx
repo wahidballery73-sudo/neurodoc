@@ -7,7 +7,7 @@ import { Send, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@/components/ui/button";
-import { chat, type ChatResponse } from "@/lib/api";
+import { chat, chatStream, type ChatResponse, type ChatSource } from "@/lib/api";
 
 const PdfViewer = dynamic(() => import("@/components/pdf-viewer"), {
   ssr: false,
@@ -75,27 +75,64 @@ function ChatPageInner() {
 
   async function send(question: string) {
     if (!question.trim() || loading) return;
-    setMessages((m) => [...m, { role: "user", content: question }]);
+    
     setInput("");
     setLoading(true);
+
+    // Push user message and placeholder assistant message
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: question },
+      { role: "assistant", content: "", sources: [] },
+    ]);
+
     try {
-      const res = await chat(question, docId);
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: res.answer, sources: res.sources },
-      ]);
-    } catch (err: any) {
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: `Error: ${err?.message || "Something went wrong."}`,
+      await chatStream(
+        question,
+        docId,
+        (sources: ChatSource[]) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastIdx = updated.length - 1;
+            if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
+              updated[lastIdx] = { ...updated[lastIdx], sources };
+            }
+            return updated;
+          });
         },
-      ]);
-    } finally {
+        (token: string) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastIdx = updated.length - 1;
+            if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
+              updated[lastIdx] = {
+                ...updated[lastIdx],
+                content: updated[lastIdx].content + token,
+              };
+            }
+            return updated;
+          });
+        },
+        () => {
+          setLoading(false);
+        }
+      );
+    } catch (err: any) {
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIdx = updated.length - 1;
+        if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
+          updated[lastIdx] = {
+            ...updated[lastIdx],
+            content: `Error: ${err?.message || "Something went wrong."}`,
+          };
+        }
+        return updated;
+      });
       setLoading(false);
     }
   }
+
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
