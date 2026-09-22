@@ -1,30 +1,34 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-bg: #FAFAFA;
   --color-surface: #FFFFFF;
   --color-border: #E5E5E5;
   --color-text: #0A0A0A;
   --color-muted: #737373;
-  --color-accent: #3B82F6;
+  --color-accent: #4D6BFE;
+  --color-user-bubble: #EEF2FF;
+  --color-user-bubble-text: #111827;
 
   --radius-sm: 6px;
   --radius-md: 10px;
+  --radius-lg: 16px;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
-@variant dark {
-  @slot;
-
-  :root {
-    --color-bg: #0A0A0A;
-    --color-surface: #141414;
-    --color-border: #262626;
-    --color-text: #FAFAFA;
-    --color-muted: #A3A3A3;
-    --color-accent: #60A5FA;
-  }
+/* Dark theme tokens — applied when .dark is on <html> (set by next-themes) */
+.dark {
+  --color-bg: #0A0A0A;
+  --color-surface: #141414;
+  --color-border: #262626;
+  --color-text: #FAFAFA;
+  --color-muted: #A3A3A3;
+  --color-accent: #6B84FF;
+  --color-user-bubble: #1E293B;
+  --color-user-bubble-text: #F1F5F9;
 }
 
 @layer base {
@@ -42,4 +46,17 @@
   * {
     border-color: var(--color-border);
   }
+}
+
+/* Thin scrollbars */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
 }

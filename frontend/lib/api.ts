@@ -66,7 +66,7 @@ export async function chatStream(
   onSources: (sources: ChatSource[]) => void,
   onToken: (t: string) => void,
   onDone: () => void,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch(`${apiBase()}/chat/stream`, {
     method: "POST",
@@ -82,12 +82,12 @@ export async function chatStream(
     const { done, value } = await reader.read();
     if (done) break;
     buf += decoder.decode(value, { stream: true });
-    // Split on double newline — events are separated by \n\n
     const parts = buf.split("\n\n");
     buf = parts.pop() || "";
     for (const part of parts) {
       const lines = part.split("\n");
-      let event = "", data = "";
+      let event = "",
+        data = "";
       for (const line of lines) {
         if (line.startsWith("event: ")) event = line.slice(7).trim();
         else if (line.startsWith("data: ")) data = line.slice(6);
@@ -97,5 +97,16 @@ export async function chatStream(
       else if (event === "token") onToken(JSON.parse(data).t);
       else if (event === "done") onDone();
     }
+  }
+}
+
+export async function getSuggestions(docId: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${apiBase()}/documents/${docId}/suggestions`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.questions) ? data.questions : [];
+  } catch {
+    return [];
   }
 }

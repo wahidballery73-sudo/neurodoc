@@ -3,22 +3,21 @@ import shutil
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse
+
 from app.config import settings
 from app.core.ingest import extract_and_chunk_pdf
 from app.core.embeddings import embed_texts, embed_query
 from app.core.vectorstore import add_chunks, query_chunks, get_collection
+from app.core.generate import suggest_questions
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+
 @router.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
-    """
-    Accepts PDF file, extracts text, chunks it, generates embeddings using Gemini API,
-    and stores vectors in ChromaDB.
-    """
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
-    
+
     doc_id = str(uuid.uuid4())
     filename = file.filename
     file_path = settings.upload_dir / f"{doc_id}_{filename}"
@@ -52,23 +51,20 @@ async def upload_document(file: UploadFile = File(...)):
         "doc_id": doc_id,
         "filename": filename,
         "total_chunks": len(chunks),
-        "message": "Document ingested and embedded successfully."
+        "message": "Document ingested and embedded successfully.",
     }
 
 
 @router.get("")
 async def list_documents():
-    """
-    Lists all ingested documents with metadata aggregated by doc_id.
-    """
     try:
         collection = get_collection()
         results = collection.get(include=["metadatas"])
         metadatas = results.get("metadatas", [])
-        
+
         if not metadatas:
             return []
-        
+
         docs_map = {}
         for meta in metadatas:
             doc_id = meta["doc_id"]
@@ -77,12 +73,13 @@ async def list_documents():
                     "doc_id": doc_id,
                     "filename": meta["filename"],
                     "chunk_count": 0,
-                    "page_count": 0
+                    "page_count": 0,
                 }
-            
             docs_map[doc_id]["chunk_count"] += 1
-            docs_map[doc_id]["page_count"] = max(docs_map[doc_id]["page_count"], meta["page"])
-            
+            docs_map[doc_id]["page_count"] = max(
+                docs_map[doc_id]["page_count"], meta["page"]
+            )
+
         doc_list = list(docs_map.values())
         doc_list.sort(key=lambda x: x["doc_id"], reverse=True)
         return doc_list
@@ -94,11 +91,8 @@ async def list_documents():
 async def search_documents(
     query: str = Query(..., description="Search query string"),
     doc_id: Optional[str] = Query(None, description="Optional document ID filter"),
-    top_k: int = Query(5, ge=1, le=20, description="Number of results to retrieve")
+    top_k: int = Query(5, ge=1, le=20, description="Number of results to retrieve"),
 ):
-    """
-    Searches vectors in ChromaDB for matching document chunks based on cosine distance.
-    """
     try:
         query_embedding = embed_query(query)
         results = query_chunks(query_embedding, top_k=top_k, doc_id=doc_id)
@@ -106,17 +100,40 @@ async def search_documents(
             "query": query,
             "doc_id_filter": doc_id,
             "results_count": len(results),
-            "results": results
+            "results": results,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
+_suggestions_cache: dict[str, list[str]] = {}
+
+
+@router.get("/{doc_id}/suggestions")
+async def get_document_suggestions(doc_id: str):
+    """Return cached or freshly generated 3 starter questions for a document."""
+    if doc_id in _suggestions_cache:
+        return {"questions": _suggestions_cache[doc_id]}
+
+    collection = get_collection()
+    results = collection.get(
+        where={"doc_id": doc_id},
+        include=["documents", "metadatas"],
+        limit=6,
+    )
+    docs = results.get("documents") or []
+    metas = results.get("metadatas") or []
+    chunks = [
+        {"text": d, "page": m.get("page", 1)} for d, m in zip(docs, metas)
+    ]
+
+    questions = suggest_questions(chunks)
+    _suggestions_cache[doc_id] = questions
+    return {"questions": questions}
+
+
 @router.get("/{doc_id}/file")
 async def get_document_file(doc_id: str):
-    """
-    Serves the raw PDF for a given doc_id. Served inline so the browser renders it.
-    """
     matches = list(settings.upload_dir.glob(f"{doc_id}_*"))
     if not matches:
         raise HTTPException(status_code=404, detail="Document not found")

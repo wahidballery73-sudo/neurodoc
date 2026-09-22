@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     chunk_size: int = 900
     chunk_overlap: int = 150
     embed_model: str = "models/gemini-embedding-001"
-    chat_model: str = "models/gemini-3.5-flash-lite"
+    chat_model: str = "models/gemini-2.0-flash"
 
     upload_dir: Path = BASE_DIR / "data" / "uploads"
     chroma_dir: Path = BASE_DIR / "data" / "chroma"
